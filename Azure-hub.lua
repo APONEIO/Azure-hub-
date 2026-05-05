@@ -1,15 +1,23 @@
+l-- // Azure Hub | Rivals Script
+-- // Optimized for Delta, Hydrogen, and PC executors
+
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
--- // Key Configuration
+-- // Safety check: If library fails to load
+if not Fluent then
+    game.Players.LocalPlayer:Kick("Azure Hub: Failed to load UI Library")
+    return
+end
+
 local CorrectKey = "2103198321031983u("
 local DiscordLink = "https://discord.gg/HaDhUpbJN"
 
--- // Initial Key Window
+-- // 1. Key System Window
 local KeyWindow = Fluent:CreateWindow({
     Title = "Azure Hub | Verification",
-    SubTitle = "Key System",
+    SubTitle = "by APONEIO",
     TabWidth = 160,
-    Size = UDim2.fromOffset(400, 300),
+    Size = UDim2.fromOffset(400, 320),
     Acrylic = false,
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
@@ -21,27 +29,26 @@ local KeyInput = KeyTab:AddInput("KeyInput", {
     Title = "Enter Key",
     Default = "",
     Placeholder = "Paste key here...",
-    Numeric = false,
-    Finished = false,
     Callback = function() end
 })
 
 KeyTab:AddButton({
     Title = "Check Key",
-    Description = "Verify your key to unlock Azure Hub",
+    Description = "Verify your key to unlock the hub",
     Callback = function()
         if KeyInput.Value == CorrectKey then
             Fluent:Notify({
                 Title = "Success!",
-                Content = "Key verified. Loading Azure Hub...",
+                Content = "Access Granted! Loading Azure Hub...",
                 Duration = 3
             })
             KeyWindow:Destroy()
+            task.wait(0.5)
             LoadMainHub()
         else
             Fluent:Notify({
                 Title = "Error",
-                Content = "Invalid Key! Please try again.",
+                Content = "Wrong Key! Get it from Discord.",
                 Duration = 3
             })
         end
@@ -61,11 +68,11 @@ KeyTab:AddButton({
     end
 })
 
--- // Main Script Function
+-- // 2. Main Hub Function
 function LoadMainHub()
     local Window = Fluent:CreateWindow({
         Title = "Azure Hub | Rivals",
-        SubTitle = "v1.0",
+        SubTitle = "Premium Edition",
         TabWidth = 160,
         Size = UDim2.fromOffset(580, 460),
         Acrylic = true,
@@ -73,13 +80,13 @@ function LoadMainHub()
         MinimizeKey = Enum.KeyCode.LeftControl
     })
 
+    -- IMPORTANT: All icons MUST be lowercase (e.g., "crosshair" not "Crosshair")
     local Tabs = {
         Combat = Window:AddTab({ Title = "Combat", Icon = "crosshair" }),
-        Movement = Window:AddTab({ Title = "Movement", Icon = "Zap" }),
+        Movement = Window:AddTab({ Title = "Movement", Icon = "zap" }),
         Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
     }
 
-    -- // Variables
     local Player = game.Players.LocalPlayer
     local Mouse = Player:GetMouse()
     local Camera = workspace.CurrentCamera
@@ -93,12 +100,12 @@ function LoadMainHub()
     local FlySpeed = 50
     local WalkSpeedValue = 16
 
-    -- // Combat Features
+    -- // Combat Tab
     Tabs.Combat:AddToggle("Aimbot", {Title = "Aimbot", Default = false}):OnChanged(function(v) AimbotEnabled = v end)
     Tabs.Combat:AddToggle("Silent", {Title = "Silent Aim", Default = false}):OnChanged(function(v) SilentAimEnabled = v end)
     Tabs.Combat:AddSlider("FOV", {Title = "FOV Size", Default = 100, Min = 10, Max = 800, Rounding = 0}):OnChanged(function(v) FOV = v end)
 
-    -- // Movement Features (Custom Speed)
+    -- // Movement Tab
     Tabs.Movement:AddSlider("Speed", {
         Title = "Custom WalkSpeed",
         Default = 16,
@@ -111,27 +118,5 @@ function LoadMainHub()
     Tabs.Movement:AddToggle("Fly", {Title = "Fly", Default = false}):OnChanged(function(v) FlyEnabled = v end)
     Tabs.Movement:AddToggle("Noclip", {Title = "Noclip", Default = false}):OnChanged(function(v) NoclipEnabled = v end)
 
-    -- // Main Loop
-    RunService.RenderStepped:Connect(function()
-        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            Player.Character.Humanoid.WalkSpeed = WalkSpeedValue
-        end
-
-        if NoclipEnabled and Player.Character then
-            for _, v in pairs(Player.Character:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
-        end
-
-        if FlyEnabled and Player.Character:FindFirstChild("HumanoidRootPart") then
-            local HRP = Player.Character.HumanoidRootPart
-            local MoveDir = Vector3.new(0,0,0)
-            local UIS = game:GetService("UserInputService")
-            if UIS:IsKeyDown(Enum.KeyCode.W) then MoveDir = MoveDir + Camera.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then MoveDir = MoveDir - Camera.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then MoveDir = MoveDir - Camera.CFrame.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then MoveDir = MoveDir + Camera.CFrame.RightVector end
-            HRP.Velocity = MoveDir * FlySpeed
-        end
-    end)
-end
+    -- // Main Loop (Logic)
+    RunService.RenderStepped:Connect(function
