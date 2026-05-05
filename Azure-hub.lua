@@ -1,78 +1,14 @@
-l-- // Azure Hub | Rivals Script
--- // Optimized for Delta, Hydrogen, and PC executors
-
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
--- // Safety check: If library fails to load
-if not Fluent then
-    game.Players.LocalPlayer:Kick("Azure Hub: Failed to load UI Library")
-    return
-end
-
+-- // Configuration
 local CorrectKey = "2103198321031983u("
 local DiscordLink = "https://discord.gg/HaDhUpbJN"
 
--- // 1. Key System Window
-local KeyWindow = Fluent:CreateWindow({
-    Title = "Azure Hub | Verification",
-    SubTitle = "by APONEIO",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(400, 320),
-    Acrylic = false,
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
-
-local KeyTab = KeyWindow:AddTab({ Title = "Key", Icon = "key" })
-
-local KeyInput = KeyTab:AddInput("KeyInput", {
-    Title = "Enter Key",
-    Default = "",
-    Placeholder = "Paste key here...",
-    Callback = function() end
-})
-
-KeyTab:AddButton({
-    Title = "Check Key",
-    Description = "Verify your key to unlock the hub",
-    Callback = function()
-        if KeyInput.Value == CorrectKey then
-            Fluent:Notify({
-                Title = "Success!",
-                Content = "Access Granted! Loading Azure Hub...",
-                Duration = 3
-            })
-            KeyWindow:Destroy()
-            task.wait(0.5)
-            LoadMainHub()
-        else
-            Fluent:Notify({
-                Title = "Error",
-                Content = "Wrong Key! Get it from Discord.",
-                Duration = 3
-            })
-        end
-    end
-})
-
-KeyTab:AddButton({
-    Title = "Get Key",
-    Description = "Copies Discord link to clipboard",
-    Callback = function()
-        setclipboard(DiscordLink)
-        Fluent:Notify({
-            Title = "Clipboard",
-            Content = "Discord link copied! Join to get the key.",
-            Duration = 5
-        })
-    end
-})
-
--- // 2. Main Hub Function
-function LoadMainHub()
+-- // Function to Load Main Script (Wrapped to prevent NIL error)
+local function LoadMainHub()
     local Window = Fluent:CreateWindow({
         Title = "Azure Hub | Rivals",
-        SubTitle = "Premium Edition",
+        SubTitle = "Premium",
         TabWidth = 160,
         Size = UDim2.fromOffset(580, 460),
         Acrylic = true,
@@ -80,7 +16,7 @@ function LoadMainHub()
         MinimizeKey = Enum.KeyCode.LeftControl
     })
 
-    -- IMPORTANT: All icons MUST be lowercase (e.g., "crosshair" not "Crosshair")
+    -- Icons must be exact Lucide names (all lowercase)
     local Tabs = {
         Combat = Window:AddTab({ Title = "Combat", Icon = "crosshair" }),
         Movement = Window:AddTab({ Title = "Movement", Icon = "zap" }),
@@ -88,35 +24,101 @@ function LoadMainHub()
     }
 
     local Player = game.Players.LocalPlayer
-    local Mouse = Player:GetMouse()
     local Camera = workspace.CurrentCamera
     local RunService = game:GetService("RunService")
+    local UIS = game:GetService("UserInputService")
 
-    local AimbotEnabled = false
-    local SilentAimEnabled = false
-    local FOV = 100
-    local NoclipEnabled = false
-    local FlyEnabled = false
-    local FlySpeed = 50
-    local WalkSpeedValue = 16
+    local Config = {
+        Aimbot = false,
+        Silent = false,
+        FOV = 100,
+        WalkSpeed = 16,
+        Fly = false,
+        FlySpeed = 50,
+        Noclip = false
+    }
 
-    -- // Combat Tab
-    Tabs.Combat:AddToggle("Aimbot", {Title = "Aimbot", Default = false}):OnChanged(function(v) AimbotEnabled = v end)
-    Tabs.Combat:AddToggle("Silent", {Title = "Silent Aim", Default = false}):OnChanged(function(v) SilentAimEnabled = v end)
-    Tabs.Combat:AddSlider("FOV", {Title = "FOV Size", Default = 100, Min = 10, Max = 800, Rounding = 0}):OnChanged(function(v) FOV = v end)
+    -- // Combat Features
+    Tabs.Combat:AddToggle("Aimbot", {Title = "Aimbot", Default = false}):OnChanged(function(v) Config.Aimbot = v end)
+    Tabs.Combat:AddToggle("Silent", {Title = "Silent Aim", Default = false}):OnChanged(function(v) Config.Silent = v end)
+    Tabs.Combat:AddSlider("FOV", {Title = "FOV Size", Default = 100, Min = 10, Max = 800, Rounding = 0}):OnChanged(function(v) Config.FOV = v end)
 
-    -- // Movement Tab
+    -- // Movement Features
     Tabs.Movement:AddSlider("Speed", {
         Title = "Custom WalkSpeed",
         Default = 16,
         Min = 16,
         Max = 300,
         Rounding = 0,
-        Callback = function(Value) WalkSpeedValue = Value end
+        Callback = function(Value) Config.WalkSpeed = Value end
     })
 
-    Tabs.Movement:AddToggle("Fly", {Title = "Fly", Default = false}):OnChanged(function(v) FlyEnabled = v end)
-    Tabs.Movement:AddToggle("Noclip", {Title = "Noclip", Default = false}):OnChanged(function(v) NoclipEnabled = v end)
+    Tabs.Movement:AddToggle("Fly", {Title = "Fly", Default = false}):OnChanged(function(v) Config.Fly = v end)
+    Tabs.Movement:AddSlider("FlySpeed", {Title = "Fly Speed", Default = 50, Min = 10, Max = 500, Rounding = 0}):OnChanged(function(v) Config.FlySpeed = v end)
+    Tabs.Movement:AddToggle("Noclip", {Title = "Noclip", Default = false}):OnChanged(function(v) Config.Noclip = v end)
 
-    -- // Main Loop (Logic)
-    RunService.RenderStepped:Connect(function
+    -- // Main Loop
+    RunService.RenderStepped:Connect(function()
+        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+            Player.Character.Humanoid.WalkSpeed = Config.WalkSpeed
+            
+            if Config.Noclip then
+                for _, v in pairs(Player.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+            end
+            
+            if Config.Fly and Player.Character:FindFirstChild("HumanoidRootPart") then
+                local HRP = Player.Character.HumanoidRootPart
+                local MoveDir = Vector3.new(0,0,0)
+                if UIS:IsKeyDown(Enum.KeyCode.W) then MoveDir = MoveDir + Camera.CFrame.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then MoveDir = MoveDir - Camera.CFrame.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then MoveDir = MoveDir - Camera.CFrame.RightVector end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then MoveDir = MoveDir + Camera.CFrame.RightVector end
+                HRP.Velocity = MoveDir * Config.FlySpeed
+            end
+        end
+    end)
+
+    Window:SelectTab(1)
+end
+
+-- // 1. Key System Window (Loaded First)
+local KeyWindow = Fluent:CreateWindow({
+    Title = "Azure Hub | Verification",
+    SubTitle = "Enter Key",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(400, 300),
+    Acrylic = false,
+    Theme = "Dark"
+})
+
+local KeyTab = KeyWindow:AddTab({ Title = "Key", Icon = "key" })
+
+local KeyInput = KeyTab:AddInput("KeyInput", {
+    Title = "Enter Key",
+    Default = "",
+    Placeholder = "...",
+})
+
+KeyTab:AddButton({
+    Title = "Check Key",
+    Callback = function()
+        if KeyInput.Value == CorrectKey then
+            Fluent:Notify({Title = "Azure Hub", Content = "Access Granted!", Duration = 2})
+            KeyWindow:Destroy() -- Removes Key UI
+            task.wait(1) -- WAIT 1 SECOND (Fixes the Nil Error)
+            LoadMainHub() -- Starts the Script
+        else
+            Fluent:Notify({Title = "Error", Content = "Invalid Key!", Duration = 2})
+        end
+    end
+})
+
+KeyTab:AddButton({
+    Title = "Get Key (Copy Discord)",
+    Callback = function()
+        setclipboard(DiscordLink)
+        Fluent:Notify({Title = "Azure Hub", Content = "Discord Link Copied!", Duration = 5})
+    end
+})
